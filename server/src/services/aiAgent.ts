@@ -144,29 +144,27 @@ export async function findAuthorityForComplaint(
  */
 export async function findWardByLocation(lat: number, lng: number): Promise<mongoose.Types.ObjectId | null> {
   try {
-    // MongoDB geospatial query for point-in-polygon
-    // Note: This requires 2dsphere index on boundaryGeoJSON
-    const ward = await Ward.findOne({
-      boundaryGeoJSON: {
-        $geoIntersects: {
-          $geometry: {
-            type: 'Point',
-            coordinates: [lng, lat], // GeoJSON uses [lng, lat]
-          },
-        },
-      },
-    })
+    const wards = await Ward.find()
+    if (wards.length === 0) return null
 
-    if (ward) {
-      return ward._id
+    let nearestWard = wards[0]
+    let minDistance = Infinity
+
+    for (const ward of wards) {
+      if (ward.center && typeof ward.center.lat === 'number' && typeof ward.center.lng === 'number') {
+        const dx = ward.center.lat - lat
+        const dy = ward.center.lng - lng
+        const distance = dx * dx + dy * dy
+        if (distance < minDistance) {
+          minDistance = distance
+          nearestWard = ward
+        }
+      }
     }
 
-    // Fallback: return first ward if geospatial query fails
-    const firstWard = await Ward.findOne()
-    return firstWard ? firstWard._id : null
+    return nearestWard._id
   } catch (error: any) {
     console.error('Error finding ward by location:', error)
-    // Fallback: return first ward
     const firstWard = await Ward.findOne()
     return firstWard ? firstWard._id : null
   }

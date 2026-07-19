@@ -1,15 +1,47 @@
 import { useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
-import { Dock } from './components/Dock'
-import { FloatingAssistant } from './components/FloatingAssistant'
+import { AlertCircle, FileText, Map as MapIcon, BarChart3 } from 'lucide-react'
 
-import Home from './pages/Home'
 import ReportIssue from './pages/ReportIssue'
 import MyComplaints from './pages/MyComplaints'
-import SafetyMap from './pages/SafetyMap'
-import SafeRoute from './pages/SafeRoute'
+import Heatmap from './pages/Heatmap'
 import Dashboard from './pages/Dashboard'
+
+function BottomNav() {
+  const location = useLocation()
+  
+  const navItems = [
+    { path: '/report', label: 'Report', icon: <AlertCircle className="w-6 h-6" /> },
+    { path: '/my-complaints', label: 'Track', icon: <FileText className="w-6 h-6" /> },
+    { path: '/heatmap', label: 'Map', icon: <MapIcon className="w-6 h-6" /> },
+    { path: '/dashboard', label: 'Dashboard', icon: <BarChart3 className="w-6 h-6" /> }
+  ]
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe z-[9999] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <div className="flex justify-around items-center h-16 max-w-md mx-auto">
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.path || (location.pathname === '/' && item.path === '/report')
+          return (
+            <Link 
+              key={item.path} 
+              to={item.path}
+              className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${
+                isActive ? 'text-teal-600' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              {item.icon}
+              <span className={`text-[10px] font-semibold ${isActive ? 'text-teal-600' : 'text-slate-500'}`}>
+                {item.label}
+              </span>
+            </Link>
+          )
+        })}
+      </div>
+    </nav>
+  )
+}
 
 function App() {
   // Ensure a persistent userId exists for the session
@@ -21,26 +53,27 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-[#f8fafc] flex flex-col font-sans selection:bg-emerald-200 selection:text-emerald-900 relative overflow-hidden pb-24">
-        {/* Ambient background blur blobs */}
-        <div className="fixed top-0 left-1/4 w-[500px] h-[500px] bg-emerald-300/40 rounded-full mix-blend-multiply filter blur-3xl opacity-60 pointer-events-none animate-blob"></div>
-        <div className="fixed top-0 right-1/4 w-[500px] h-[500px] bg-teal-200/40 rounded-full mix-blend-multiply filter blur-3xl opacity-60 pointer-events-none animate-blob" style={{ animationDelay: '2s' }}></div>
-        <div className="fixed -bottom-32 left-1/2 w-[600px] h-[600px] bg-sky-200/40 rounded-full mix-blend-multiply filter blur-3xl opacity-60 pointer-events-none animate-blob" style={{ animationDelay: '4s' }}></div>
+      <div className="bg-slate-100 min-h-screen flex justify-center selection:bg-teal-200 selection:text-teal-900 font-sans">
+        {/* Mobile device constraint wrapper for desktop */}
+        <div className="w-full sm:max-w-md bg-white min-h-screen shadow-2xl relative overflow-x-hidden">
+          
+          <header className="bg-teal-600 text-white p-4 sticky top-0 z-[9999] shadow-md">
+            <h1 className="text-xl font-bold text-center tracking-wide">NagarSeva</h1>
+          </header>
 
-        <main className="flex-grow w-full relative z-10">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/report" element={<ReportIssue />} />
-            <Route path="/my-complaints" element={<MyComplaints />} />
-            <Route path="/safety-map" element={<SafetyMap />} />
-            <Route path="/safe-route" element={<SafeRoute />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-        
-        <FloatingAssistant />
-        <Dock />
+          <main className="flex-grow w-full h-full">
+            <Routes>
+              <Route path="/report" element={<ReportIssue />} />
+              <Route path="/my-complaints" element={<MyComplaints />} />
+              <Route path="/heatmap" element={<Heatmap />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/" element={<Navigate to="/report" replace />} />
+              <Route path="*" element={<Navigate to="/report" replace />} />
+            </Routes>
+          </main>
+          
+          <BottomNav />
+        </div>
       </div>
     </Router>
   )

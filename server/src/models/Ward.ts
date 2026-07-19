@@ -2,6 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose'
 
 export interface IWard extends Document {
   name: string
+  center: { lat: number; lng: number }
   boundaryGeoJSON: GeoJSON.FeatureCollection
   authorityContacts: Record<string, any>
   createdAt: Date
@@ -14,6 +15,10 @@ const wardSchema = new Schema<IWard>(
       type: String,
       required: true,
       unique: true,
+    },
+    center: {
+      lat: { type: Number, required: true },
+      lng: { type: Number, required: true }
     },
     boundaryGeoJSON: {
       type: {

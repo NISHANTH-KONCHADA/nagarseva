@@ -9,6 +9,7 @@ export default function ReportIssue() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [photoBase64, setPhotoBase64] = useState<string | null>(null)
   
+  const [loadingLocation, setLoadingLocation] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<any | null>(null)
@@ -16,6 +17,8 @@ export default function ReportIssue() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleLocationClick = () => {
+    setLoadingLocation(true)
+    setError(null)
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -23,15 +26,18 @@ export default function ReportIssue() {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           })
+          setLoadingLocation(false)
           setStep(3)
         },
         (err) => {
           setError('Failed to get location. Please ensure location services are enabled.')
+          setLoadingLocation(false)
           console.error(err)
         }
       )
     } else {
       setError('Geolocation is not supported by your browser.')
+      setLoadingLocation(false)
     }
   }
 
@@ -86,7 +92,12 @@ export default function ReportIssue() {
     setError(null)
     setSuccess(null)
 
-    const userId = localStorage.getItem('nagarseva_user_id')
+    // Using a pseudo-userId as requested
+    let userId = localStorage.getItem('nagarseva_user_id')
+    if (!userId) {
+      userId = 'user_' + Math.random().toString(36).substring(2, 9)
+      localStorage.setItem('nagarseva_user_id', userId)
+    }
 
     try {
       const response = await fetch(`${API_URL}/api/complaints`, {
@@ -115,185 +126,200 @@ export default function ReportIssue() {
     }
   }
 
+  const getSeverityColor = (severity: number) => {
+    switch(severity) {
+      case 1: return 'bg-green-100 text-green-800'
+      case 2: return 'bg-yellow-100 text-yellow-800'
+      case 3: return 'bg-orange-100 text-orange-800'
+      case 4: return 'bg-red-100 text-red-800'
+      case 5: return 'bg-red-600 text-white'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
   if (success) {
     return (
-      <div className="max-w-2xl mx-auto relative z-10 pt-10">
-        <div className="glass-panel p-12 text-center relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/20 to-teal-500/10 z-0"></div>
-          <div className="relative z-10 flex flex-col items-center">
-            <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.5)] mb-6 animate-[blob_3s_infinite]">
-              <CheckCircle2 className="w-12 h-12 text-white" />
-            </div>
-            <h2 className="text-4xl font-black text-stone-800 mb-4 tracking-tight">Report Analyzed & Filed</h2>
-            
-            <div className="w-full text-left bg-white/50 backdrop-blur-xl p-8 rounded-3xl border border-white/60 shadow-xl mt-6 space-y-4">
-              <div className="flex justify-between items-center border-b border-stone-200/50 pb-4">
-                <span className="text-stone-500 font-bold uppercase tracking-widest text-sm">Classification</span>
-                <span className="font-black text-xl text-emerald-700">{success.aiClassification?.issueType}</span>
-              </div>
-              <div className="flex justify-between items-center border-b border-stone-200/50 pb-4">
-                <span className="text-stone-500 font-bold uppercase tracking-widest text-sm">Severity</span>
-                <span className="font-black text-xl text-amber-600">{success.aiClassification?.severity}/5</span>
-              </div>
-              <div className="flex justify-between items-center border-b border-stone-200/50 pb-4">
-                <span className="text-stone-500 font-bold uppercase tracking-widest text-sm">Routed To</span>
-                <span className="font-black text-lg text-indigo-700">{success.assignedAuthority?.name || 'Pending assignment'}</span>
-              </div>
-              <div className="mt-6 p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 italic text-stone-700 font-medium">
-                "{success.aiClassification?.reasoning}"
-              </div>
-            </div>
-
-            <button 
-              onClick={() => {
-                setSuccess(null)
-                setStep(1)
-                setPhotoBase64(null)
-                setLocation(null)
-                setDescription('')
-              }}
-              className="mt-8 glass-button w-full flex items-center justify-center py-4"
-            >
-              Report Another Issue
-            </button>
+      <div className="min-h-screen bg-slate-50 pt-8 px-6 pb-24">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center max-w-md mx-auto">
+          <div className="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-10 h-10 text-teal-600" />
           </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Issue Reported</h2>
+          <p className="text-slate-500 mb-8">AI has automatically classified and routed your issue.</p>
+          
+          <div className="bg-slate-50 rounded-xl p-5 text-left space-y-4 mb-8 border border-slate-100">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 text-sm">Classification</span>
+              <span className="font-semibold text-slate-800 capitalize">{success.aiClassification?.issueType.replace('_', ' ')}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 text-sm">Severity</span>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${getSeverityColor(success.aiClassification?.severity)}`}>
+                Level {success.aiClassification?.severity}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 text-sm">Routed To</span>
+              <span className="font-semibold text-teal-700">{success.assignedAuthority?.name || 'Pending'}</span>
+            </div>
+            <div className="pt-4 border-t border-slate-200">
+              <p className="text-sm text-slate-600 italic">"{success.aiClassification?.reasoning}"</p>
+            </div>
+          </div>
+
+          <button 
+            onClick={() => {
+              setSuccess(null)
+              setStep(1)
+              setPhotoBase64(null)
+              setLocation(null)
+              setDescription('')
+            }}
+            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-4 px-6 rounded-xl transition-colors min-h-[44px]"
+          >
+            Report Another Issue
+          </button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-3xl mx-auto relative z-10 pt-4 pb-20">
-      
-      {/* Stepper Header */}
-      <div className="mb-10 flex justify-between items-center relative">
-        <div className="absolute top-1/2 left-0 w-full h-1 bg-stone-200 -translate-y-1/2 rounded-full z-0"></div>
-        <div className="absolute top-1/2 left-0 h-1 bg-emerald-500 -translate-y-1/2 rounded-full z-0 transition-all duration-500" style={{ width: `${((step - 1) / 2) * 100}%` }}></div>
+    <div className="min-h-screen bg-slate-50 pt-6 px-4 pb-24">
+      <div className="max-w-md mx-auto">
         
-        {[1, 2, 3].map((num) => (
-          <div key={num} className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full font-black text-lg transition-all duration-500 ${
-            step >= num 
-              ? 'bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-110' 
-              : 'bg-white text-stone-400 border-2 border-stone-200'
-          }`}>
-            {step > num ? <CheckCircle2 className="w-6 h-6" /> : num}
-          </div>
-        ))}
-      </div>
-
-      <div className="glass-panel overflow-hidden p-8 sm:p-12">
-        {error && (
-          <div className="mb-8 p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-700 font-bold flex items-center">
-            <AlertTriangle className="w-6 h-6 mr-3 text-rose-500" />
-            {error}
-          </div>
-        )}
-
-        {/* Step 1: Photo */}
-        {step === 1 && (
-          <div className="animate-[fade-in_0.5s_ease-out]">
-            <h2 className="text-4xl font-black text-stone-800 mb-2 tracking-tight">Capture Evidence</h2>
-            <p className="text-stone-500 font-medium mb-8">Our AI requires a photo to automatically analyze the issue.</p>
-            
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="border-3 border-dashed border-emerald-400/50 rounded-[3rem] p-12 text-center cursor-pointer hover:bg-emerald-50/50 hover:border-emerald-500 transition-all duration-300 group bg-white/40 backdrop-blur-sm"
-            >
-              <div className="w-24 h-24 bg-emerald-100 rounded-full mx-auto flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-emerald-200 transition-all shadow-inner">
-                <Camera className="w-10 h-10 text-emerald-600" />
+        {/* Simple Progress Indicator */}
+        <div className="flex items-center justify-between mb-8 px-2">
+          {[1, 2, 3].map((num) => (
+            <div key={num} className="flex flex-col items-center flex-1">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-colors ${
+                step >= num ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-500'
+              }`}>
+                {step > num ? <CheckCircle2 className="w-4 h-4" /> : num}
               </div>
-              <h3 className="text-2xl font-bold text-stone-800 mb-2">Tap to Upload Photo</h3>
-              <p className="text-stone-500 font-medium">Supports PNG, JPG (Max 10MB)</p>
+              {num < 3 && (
+                <div className="hidden sm:block h-1 w-full bg-slate-200 absolute -z-10 translate-y-4"></div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm flex items-start">
+              <AlertTriangle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+              {error}
+            </div>
+          )}
+
+          {/* Step 1: Photo */}
+          {step === 1 && (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Add Photo</h2>
+              <p className="text-slate-500 mb-8 text-sm">Take a clear picture of the civic issue.</p>
               
-              <input 
-                type="file" 
-                accept="image/*" 
-                capture="environment"
-                className="hidden" 
-                ref={fileInputRef}
-                onChange={handlePhotoUpload}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Location */}
-        {step === 2 && (
-          <div className="animate-[fade-in_0.5s_ease-out]">
-            <button onClick={() => setStep(1)} className="text-stone-500 hover:text-emerald-600 flex items-center gap-2 font-bold mb-6 transition-colors">
-              <ArrowLeft className="w-4 h-4" /> Back to Photo
-            </button>
-            <h2 className="text-4xl font-black text-stone-800 mb-2 tracking-tight">Pinpoint Location</h2>
-            <p className="text-stone-500 font-medium mb-8">Where exactly is this issue located?</p>
-            
-            <div className="flex flex-col items-center justify-center p-12 bg-white/40 backdrop-blur-md rounded-[3rem] border border-stone-200/50 shadow-sm">
-              <div className="w-32 h-32 bg-sky-100 rounded-full flex items-center justify-center mb-8 relative">
-                <div className="absolute inset-0 bg-sky-200 rounded-full animate-ping opacity-20"></div>
-                <MapPin className="w-12 h-12 text-sky-600 relative z-10" />
-              </div>
-              <button
-                type="button"
-                onClick={handleLocationClick}
-                className="glass-button text-xl px-10 py-5 w-full sm:w-auto flex items-center justify-center"
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-teal-300 bg-teal-50 hover:bg-teal-100 rounded-2xl p-10 text-center cursor-pointer transition-colors"
               >
-                Use Current Location
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Details & Submit */}
-        {step === 3 && (
-          <div className="animate-[fade-in_0.5s_ease-out]">
-            <button onClick={() => setStep(2)} className="text-stone-500 hover:text-emerald-600 flex items-center gap-2 font-bold mb-6 transition-colors">
-              <ArrowLeft className="w-4 h-4" /> Back to Location
-            </button>
-            <h2 className="text-4xl font-black text-stone-800 mb-2 tracking-tight">Final Details</h2>
-            <p className="text-stone-500 font-medium mb-8">Add any extra context to help authorities.</p>
-            
-            <div className="space-y-6">
-              <div className="flex gap-4 mb-8">
-                {photoBase64 && <img src={photoBase64} alt="Evidence" className="w-24 h-24 object-cover rounded-2xl shadow-md border border-white/50" />}
-                {location && (
-                  <div className="flex-1 bg-sky-50 rounded-2xl p-4 flex flex-col justify-center border border-sky-100">
-                    <span className="text-xs font-bold text-sky-800 uppercase tracking-widest mb-1">Pinned Location</span>
-                    <span className="font-medium text-sky-900">{location.lat.toFixed(5)}, {location.lng.toFixed(5)}</span>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-stone-700 mb-3 tracking-widest uppercase">Description</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  className="w-full glass-input text-lg p-5 rounded-2xl bg-white/60 focus:bg-white"
-                  placeholder="E.g. Large pothole on the right lane near the intersection..."
+                <div className="w-16 h-16 bg-white rounded-full mx-auto flex items-center justify-center mb-4 shadow-sm text-teal-600">
+                  <Camera className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-semibold text-teal-900 mb-1">Open Camera</h3>
+                <p className="text-teal-600/70 text-sm">Tap to capture image</p>
+                
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="environment"
+                  className="hidden" 
+                  ref={fileInputRef}
+                  onChange={handlePhotoUpload}
                 />
               </div>
-
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className={`w-full flex items-center justify-center py-5 px-6 text-xl font-black tracking-wide ${
-                  loading ? 'bg-stone-200 text-stone-400 cursor-not-allowed rounded-2xl' : 'glass-button'
-                }`}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-6 h-6 animate-spin mr-3" />
-                    AI Analyzing...
-                  </>
-                ) : (
-                  <>
-                    Submit to Authorities <ArrowRight className="w-6 h-6 ml-2" />
-                  </>
-                )}
-              </button>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Step 2: Location */}
+          {step === 2 && (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+              <button onClick={() => setStep(1)} className="text-slate-500 hover:text-slate-700 flex items-center gap-1 text-sm font-medium mb-6">
+                <ArrowLeft className="w-4 h-4" /> Back
+              </button>
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Confirm Location</h2>
+              <p className="text-slate-500 mb-8 text-sm">We need the exact GPS coordinates to route this correctly.</p>
+              
+              <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 text-center">
+                <div className="w-20 h-20 bg-blue-100 rounded-full mx-auto flex items-center justify-center mb-6">
+                  <MapPin className="w-10 h-10 text-blue-600" />
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={handleLocationClick}
+                  disabled={loadingLocation}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium py-4 px-6 rounded-xl transition-colors min-h-[44px] flex items-center justify-center"
+                >
+                  {loadingLocation ? (
+                    <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Capturing Location...</>
+                  ) : (
+                    'Capture GPS Location'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Details & Submit */}
+          {step === 3 && (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+              <button onClick={() => setStep(2)} className="text-slate-500 hover:text-slate-700 flex items-center gap-1 text-sm font-medium mb-6">
+                <ArrowLeft className="w-4 h-4" /> Back
+              </button>
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Final Details</h2>
+              <p className="text-slate-500 mb-8 text-sm">Provide a short description of what you observed.</p>
+              
+              <div className="space-y-6">
+                <div className="flex gap-3 mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  {photoBase64 && <img src={photoBase64} alt="Evidence preview" className="w-16 h-16 object-cover rounded-lg" />}
+                  <div className="flex-1 flex flex-col justify-center">
+                    <div className="flex items-center text-teal-700 text-sm font-semibold mb-1">
+                      <CheckCircle2 className="w-4 h-4 mr-1" /> Photo attached
+                    </div>
+                    {location && (
+                      <div className="flex items-center text-blue-700 text-sm font-semibold">
+                        <CheckCircle2 className="w-4 h-4 mr-1" /> Location captured
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Description</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={4}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent min-h-[44px]"
+                    placeholder="E.g. Large pothole on the main road causing traffic..."
+                  />
+                </div>
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading || !description.trim()}
+                  className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:text-slate-500 text-white font-medium py-4 px-6 rounded-xl transition-colors min-h-[44px] flex items-center justify-center"
+                >
+                  {loading ? (
+                    <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Processing...</>
+                  ) : (
+                    'Submit Report'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

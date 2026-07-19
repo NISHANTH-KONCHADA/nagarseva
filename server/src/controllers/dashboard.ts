@@ -45,7 +45,7 @@ Escalations: ${escalated.length}
 Provide a single paragraph (max 3 sentences) summarizing this ward's performance in plain language. Be objective, highlight trends, and do not use greetings.`
 
           const response = await groq.chat.completions.create({
-            model: 'llama3-8b-8192',
+            model: 'llama-3.3-70b-versatile',
             max_tokens: 100,
             messages: [{ role: 'user', content: prompt }]
           })
