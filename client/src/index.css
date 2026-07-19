@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer components {
   .glass-panel {
     @apply bg-white/40 backdrop-blur-md border border-white/30 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] rounded-2xl;

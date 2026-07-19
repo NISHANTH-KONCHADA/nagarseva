@@ -64,60 +64,61 @@ export default function MyComplaints() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto relative z-10">
-      <div className="glass-panel p-8 mb-8">
-        <h2 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-700 to-teal-600 tracking-tight">My Complaints</h2>
-        <p className="text-stone-600 mt-3 text-lg font-medium">Track the real-time status of issues you've reported.</p>
+    <div className="max-w-5xl mx-auto relative z-10 pt-4 pb-20">
+      <div className="glass-panel p-10 mb-12 border-b-4 border-emerald-500/30 text-center sm:text-left relative overflow-hidden group">
+        <div className="absolute -right-20 -top-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
+        <h2 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-stone-800 to-emerald-600 tracking-tighter mb-4 relative z-10">My Reports</h2>
+        <p className="text-stone-600 mt-2 text-xl font-medium max-w-2xl relative z-10">Track the real-time status and AI resolution history of your civic issues.</p>
       </div>
       
-      <div className="space-y-8">
+      <div className="space-y-12">
         {complaints.map(complaint => {
           const statusStyle = getStatusStyle(complaint.status)
           return (
-            <div key={complaint._id} className="glass-panel overflow-hidden hover:scale-[1.01] transition-transform duration-300">
-              <div className="p-6 sm:p-8">
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                      <span className="px-4 py-1.5 bg-white/50 backdrop-blur-sm text-stone-800 rounded-full text-xs font-bold uppercase tracking-wider border border-white/60 shadow-sm">
+            <div key={complaint._id} className="glass-panel overflow-hidden group hover:scale-[1.02] transition-transform duration-500 hover:shadow-2xl hover:shadow-emerald-500/10">
+              <div className="p-8 sm:p-10">
+                <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-10">
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-3 mb-6">
+                      <span className="px-5 py-2 bg-white/70 backdrop-blur-md text-stone-800 rounded-full text-xs font-black uppercase tracking-widest border border-white/60 shadow-sm">
                         {complaint.type.replace('_', ' ')}
                       </span>
-                      <span className="px-4 py-1.5 bg-emerald-500/10 backdrop-blur-sm text-emerald-800 rounded-full text-xs font-bold border border-emerald-500/20 shadow-sm">
-                        Severity {complaint.severity}/5
+                      <span className="px-5 py-2 bg-emerald-500/10 backdrop-blur-md text-emerald-800 rounded-full text-xs font-black uppercase tracking-widest border border-emerald-500/20 shadow-sm">
+                        Level {complaint.severity}/5
                       </span>
                     </div>
-                    <h3 className="text-xl sm:text-2xl font-bold text-stone-800 leading-tight">{complaint.description}</h3>
-                    <p className="text-sm text-stone-600 mt-3 flex items-center gap-2 font-medium">
+                    <h3 className="text-3xl font-black text-stone-800 leading-tight mb-4 tracking-tight group-hover:text-emerald-900 transition-colors">{complaint.description}</h3>
+                    <p className="text-sm text-stone-500 flex items-center gap-2 font-bold tracking-widest uppercase">
                       <Clock className="w-4 h-4 text-emerald-500" />
                       {format(new Date(complaint.createdAt), 'MMM d, yyyy \u2022 h:mm a')}
                     </p>
                   </div>
                   
-                  <div className={`flex items-center space-x-2 px-5 py-2.5 rounded-xl border shadow-sm backdrop-blur-md ${statusStyle.bg} ${statusStyle.border} ${statusStyle.text} whitespace-nowrap`}>
+                  <div className={`flex items-center space-x-3 px-6 py-4 rounded-3xl border shadow-lg backdrop-blur-xl ${statusStyle.bg} ${statusStyle.border} ${statusStyle.text} whitespace-nowrap`}>
                     {statusStyle.icon}
-                    <span className="font-bold capitalize tracking-wide">{complaint.status}</span>
+                    <span className="font-black capitalize tracking-widest text-lg">{complaint.status}</span>
                   </div>
                 </div>
 
                 {/* Status Timeline */}
-                <div className="mt-8 pt-8 border-t border-stone-300/50">
-                  <h4 className="text-sm font-bold text-stone-700 mb-6 uppercase tracking-widest flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-emerald-500" /> Status History
+                <div className="mt-10 pt-10 border-t border-stone-200/50 bg-stone-50/50 -mx-8 sm:-mx-10 px-8 sm:px-10 pb-8 rounded-b-3xl">
+                  <h4 className="text-sm font-black text-stone-700 mb-8 uppercase tracking-widest flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-emerald-500" /> Resolution Journey
                   </h4>
-                  <div className="space-y-0 relative before:absolute before:inset-0 before:ml-[11px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-emerald-300 before:via-emerald-400/50 before:to-transparent">
+                  <div className="space-y-0 relative before:absolute before:inset-0 before:ml-[15px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-1 before:bg-gradient-to-b before:from-emerald-300 before:via-emerald-400/50 before:to-transparent">
                     {complaint.statusHistory.map((history: any, index: number) => (
-                      <div key={index} className="relative flex items-start justify-between md:justify-normal md:odd:flex-row-reverse group is-active pb-8 last:pb-0">
+                      <div key={index} className="relative flex items-start justify-between md:justify-normal md:odd:flex-row-reverse group/timeline pb-10 last:pb-0">
                         {/* Marker */}
-                        <div className="flex items-center justify-center w-6 h-6 rounded-full border-4 border-white/80 bg-emerald-500 shadow-md shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 backdrop-blur-sm"></div>
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full border-4 border-white bg-emerald-500 shadow-xl shrink-0 md:order-1 md:group-odd/timeline:-translate-x-1/2 md:group-even/timeline:translate-x-1/2 z-10 transition-transform duration-300 group-hover/timeline:scale-125"></div>
                         
                         {/* Content */}
-                        <div className="w-[calc(100%-2.5rem)] md:w-[calc(50%-2rem)] bg-white/60 backdrop-blur-md p-5 rounded-2xl shadow-sm border border-white/60">
-                          <div className="flex items-center justify-between mb-2">
-                            <h5 className="font-bold text-stone-800 capitalize tracking-wide">{history.status}</h5>
-                            <span className="text-xs text-stone-500 font-medium bg-white/50 px-2 py-1 rounded-md">{format(new Date(history.timestamp), 'MMM d, h:mm a')}</span>
+                        <div className="w-[calc(100%-3rem)] md:w-[calc(50%-3rem)] bg-white/80 backdrop-blur-xl p-6 rounded-3xl shadow-md border border-white/80 group-hover/timeline:-translate-y-1 transition-transform duration-300">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
+                            <h5 className="font-black text-lg text-stone-800 capitalize tracking-wide">{history.status}</h5>
+                            <span className="text-xs text-stone-500 font-bold bg-white px-3 py-1.5 rounded-xl shadow-sm tracking-widest uppercase">{format(new Date(history.timestamp), 'MMM d, h:mm a')}</span>
                           </div>
                           {history.notes && (
-                            <p className="text-sm text-stone-600 mt-2 font-medium leading-relaxed">{history.notes}</p>
+                            <p className="text-sm text-stone-600 font-medium leading-relaxed mt-2">{history.notes}</p>
                           )}
                         </div>
                       </div>

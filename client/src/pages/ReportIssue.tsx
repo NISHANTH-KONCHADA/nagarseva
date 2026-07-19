@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react'
-import { Camera, MapPin, Send, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { Camera, MapPin, Loader2, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft } from 'lucide-react'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 export default function ReportIssue() {
+  const [step, setStep] = useState(1)
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [photoBase64, setPhotoBase64] = useState<string | null>(null)
@@ -22,6 +23,7 @@ export default function ReportIssue() {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           })
+          setStep(3)
         },
         (err) => {
           setError('Failed to get location. Please ensure location services are enabled.')
@@ -66,6 +68,7 @@ export default function ReportIssue() {
         
         const dataUrl = canvas.toDataURL('image/jpeg', 0.7)
         setPhotoBase64(dataUrl)
+        setStep(2)
       }
       img.src = event.target?.result as string
     }
@@ -105,11 +108,6 @@ export default function ReportIssue() {
       const result = await response.json()
       setSuccess(result)
       
-      setDescription('')
-      setLocation(null)
-      setPhotoBase64(null)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-      
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -117,130 +115,185 @@ export default function ReportIssue() {
     }
   }
 
-  return (
-    <div className="max-w-2xl mx-auto relative z-10">
-      <div className="glass-panel overflow-hidden">
-        <div className="bg-gradient-to-r from-emerald-600/90 to-teal-700/90 backdrop-blur-md px-6 py-8 text-center sm:text-left border-b border-white/20 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3"></div>
-          <h2 className="text-3xl font-bold text-white tracking-tight relative z-10">Report an Issue</h2>
-          <p className="text-emerald-50 mt-2 text-sm sm:text-base font-medium relative z-10">Help keep our city safe and clean. AI will route your issue automatically.</p>
+  if (success) {
+    return (
+      <div className="max-w-2xl mx-auto relative z-10 pt-10">
+        <div className="glass-panel p-12 text-center relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/20 to-teal-500/10 z-0"></div>
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.5)] mb-6 animate-[blob_3s_infinite]">
+              <CheckCircle2 className="w-12 h-12 text-white" />
+            </div>
+            <h2 className="text-4xl font-black text-stone-800 mb-4 tracking-tight">Report Analyzed & Filed</h2>
+            
+            <div className="w-full text-left bg-white/50 backdrop-blur-xl p-8 rounded-3xl border border-white/60 shadow-xl mt-6 space-y-4">
+              <div className="flex justify-between items-center border-b border-stone-200/50 pb-4">
+                <span className="text-stone-500 font-bold uppercase tracking-widest text-sm">Classification</span>
+                <span className="font-black text-xl text-emerald-700">{success.aiClassification?.issueType}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-stone-200/50 pb-4">
+                <span className="text-stone-500 font-bold uppercase tracking-widest text-sm">Severity</span>
+                <span className="font-black text-xl text-amber-600">{success.aiClassification?.severity}/5</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-stone-200/50 pb-4">
+                <span className="text-stone-500 font-bold uppercase tracking-widest text-sm">Routed To</span>
+                <span className="font-black text-lg text-indigo-700">{success.assignedAuthority?.name || 'Pending assignment'}</span>
+              </div>
+              <div className="mt-6 p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 italic text-stone-700 font-medium">
+                "{success.aiClassification?.reasoning}"
+              </div>
+            </div>
+
+            <button 
+              onClick={() => {
+                setSuccess(null)
+                setStep(1)
+                setPhotoBase64(null)
+                setLocation(null)
+                setDescription('')
+              }}
+              className="mt-8 glass-button w-full flex items-center justify-center py-4"
+            >
+              Report Another Issue
+            </button>
+          </div>
         </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto relative z-10 pt-4 pb-20">
+      
+      {/* Stepper Header */}
+      <div className="mb-10 flex justify-between items-center relative">
+        <div className="absolute top-1/2 left-0 w-full h-1 bg-stone-200 -translate-y-1/2 rounded-full z-0"></div>
+        <div className="absolute top-1/2 left-0 h-1 bg-emerald-500 -translate-y-1/2 rounded-full z-0 transition-all duration-500" style={{ width: `${((step - 1) / 2) * 100}%` }}></div>
         
-        <div className="p-6 sm:p-8">
-          {success && (
-            <div className="mb-6 p-5 bg-emerald-500/20 backdrop-blur-md border border-emerald-400/30 rounded-2xl shadow-inner relative overflow-hidden">
-              <div className="flex items-center space-x-3 mb-3 relative z-10">
-                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-                <h3 className="text-emerald-900 font-bold text-lg">Issue Reported Successfully!</h3>
-              </div>
-              <div className="text-sm text-emerald-800 space-y-2 ml-9 relative z-10 font-medium">
-                <p><span className="font-bold text-emerald-900">Classification:</span> {success.aiClassification?.issueType}</p>
-                <p><span className="font-bold text-emerald-900">Severity:</span> {success.aiClassification?.severity}/5</p>
-                <p><span className="font-bold text-emerald-900">Routed To:</span> {success.assignedAuthority?.name || 'Pending assignment'}</p>
-                <div className="mt-3 p-4 bg-white/50 backdrop-blur-sm rounded-xl italic text-emerald-800 shadow-sm border border-emerald-200/50">
-                  "{success.aiClassification?.reasoning}"
-                </div>
-              </div>
-            </div>
-          )}
+        {[1, 2, 3].map((num) => (
+          <div key={num} className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full font-black text-lg transition-all duration-500 ${
+            step >= num 
+              ? 'bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-110' 
+              : 'bg-white text-stone-400 border-2 border-stone-200'
+          }`}>
+            {step > num ? <CheckCircle2 className="w-6 h-6" /> : num}
+          </div>
+        ))}
+      </div>
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-500/20 backdrop-blur-md border border-red-400/30 rounded-xl text-red-800 font-medium text-sm flex items-center shadow-sm">
-              <AlertTriangle className="w-5 h-5 mr-2 flex-shrink-0 text-red-600" />
-              {error}
-            </div>
-          )}
+      <div className="glass-panel overflow-hidden p-8 sm:p-12">
+        {error && (
+          <div className="mb-8 p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-700 font-bold flex items-center">
+            <AlertTriangle className="w-6 h-6 mr-3 text-rose-500" />
+            {error}
+          </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Photo Upload */}
-            <div>
-              <label className="block text-sm font-bold text-stone-700 mb-2 tracking-wide uppercase">Capture Photo Evidence</label>
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center cursor-pointer transition-all duration-300 ${
-                  photoBase64 
-                    ? 'border-emerald-500 bg-emerald-500/10 shadow-inner' 
-                    : 'border-stone-400/50 bg-white/30 hover:border-emerald-400 hover:bg-white/50 hover:shadow-md backdrop-blur-sm'
-                }`}
-              >
-                {photoBase64 ? (
-                  <div className="flex flex-col items-center">
-                    <img src={photoBase64} alt="Preview" className="h-40 object-contain mb-3 rounded-xl shadow-md border border-white/50" />
-                    <span className="text-sm text-emerald-800 font-bold bg-emerald-100/80 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm">Tap to change photo</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center text-stone-600">
-                    <div className="bg-white/60 p-4 rounded-full mb-4 shadow-sm border border-white/50">
-                      <Camera className="w-8 h-8 text-emerald-600" />
-                    </div>
-                    <p className="font-bold text-stone-800">Click to capture or upload photo</p>
-                    <p className="text-xs mt-2 text-stone-600 max-w-xs mx-auto font-medium">Our AI agent will automatically analyze the image to determine the issue type and severity.</p>
-                  </div>
-                )}
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  capture="environment"
-                  className="hidden" 
-                  ref={fileInputRef}
-                  onChange={handlePhotoUpload}
-                />
+        {/* Step 1: Photo */}
+        {step === 1 && (
+          <div className="animate-[fade-in_0.5s_ease-out]">
+            <h2 className="text-4xl font-black text-stone-800 mb-2 tracking-tight">Capture Evidence</h2>
+            <p className="text-stone-500 font-medium mb-8">Our AI requires a photo to automatically analyze the issue.</p>
+            
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className="border-3 border-dashed border-emerald-400/50 rounded-[3rem] p-12 text-center cursor-pointer hover:bg-emerald-50/50 hover:border-emerald-500 transition-all duration-300 group bg-white/40 backdrop-blur-sm"
+            >
+              <div className="w-24 h-24 bg-emerald-100 rounded-full mx-auto flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-emerald-200 transition-all shadow-inner">
+                <Camera className="w-10 h-10 text-emerald-600" />
               </div>
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="block text-sm font-bold text-stone-700 mb-2 tracking-wide uppercase">Location</label>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleLocationClick}
-                  className="flex-1 sm:flex-none flex items-center justify-center px-5 py-3 glass-input font-bold text-stone-700 hover:scale-105 hover:bg-white/80 active:scale-95"
-                >
-                  <MapPin className={`w-5 h-5 mr-2 ${location ? 'text-emerald-500' : 'text-stone-500'}`} />
-                  {location ? 'Location Captured' : 'Get Current Location'}
-                </button>
-                {location && (
-                  <span className="text-sm text-emerald-800 font-bold bg-emerald-500/20 backdrop-blur-sm px-4 py-3 rounded-xl border border-emerald-400/30 text-center shadow-inner">
-                    {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-bold text-stone-700 mb-2 tracking-wide uppercase">Additional Description</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-                className="w-full glass-input placeholder-stone-500 text-stone-800 font-medium"
-                placeholder="Provide any helpful details for the authorities..."
+              <h3 className="text-2xl font-bold text-stone-800 mb-2">Tap to Upload Photo</h3>
+              <p className="text-stone-500 font-medium">Supports PNG, JPG (Max 10MB)</p>
+              
+              <input 
+                type="file" 
+                accept="image/*" 
+                capture="environment"
+                className="hidden" 
+                ref={fileInputRef}
+                onChange={handlePhotoUpload}
               />
             </div>
+          </div>
+        )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full flex items-center justify-center py-4 px-4 text-lg font-black tracking-wide uppercase ${
-                loading ? 'bg-stone-300 text-stone-500 cursor-not-allowed rounded-xl' : 'glass-button'
-              }`}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                  Analyzing & Routing...
-                </>
-              ) : (
-                <>
-                  <Send className="w-5 h-5 mr-2" />
-                  Submit Civic Report
-                </>
-              )}
+        {/* Step 2: Location */}
+        {step === 2 && (
+          <div className="animate-[fade-in_0.5s_ease-out]">
+            <button onClick={() => setStep(1)} className="text-stone-500 hover:text-emerald-600 flex items-center gap-2 font-bold mb-6 transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Back to Photo
             </button>
-          </form>
-        </div>
+            <h2 className="text-4xl font-black text-stone-800 mb-2 tracking-tight">Pinpoint Location</h2>
+            <p className="text-stone-500 font-medium mb-8">Where exactly is this issue located?</p>
+            
+            <div className="flex flex-col items-center justify-center p-12 bg-white/40 backdrop-blur-md rounded-[3rem] border border-stone-200/50 shadow-sm">
+              <div className="w-32 h-32 bg-sky-100 rounded-full flex items-center justify-center mb-8 relative">
+                <div className="absolute inset-0 bg-sky-200 rounded-full animate-ping opacity-20"></div>
+                <MapPin className="w-12 h-12 text-sky-600 relative z-10" />
+              </div>
+              <button
+                type="button"
+                onClick={handleLocationClick}
+                className="glass-button text-xl px-10 py-5 w-full sm:w-auto flex items-center justify-center"
+              >
+                Use Current Location
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Details & Submit */}
+        {step === 3 && (
+          <div className="animate-[fade-in_0.5s_ease-out]">
+            <button onClick={() => setStep(2)} className="text-stone-500 hover:text-emerald-600 flex items-center gap-2 font-bold mb-6 transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Back to Location
+            </button>
+            <h2 className="text-4xl font-black text-stone-800 mb-2 tracking-tight">Final Details</h2>
+            <p className="text-stone-500 font-medium mb-8">Add any extra context to help authorities.</p>
+            
+            <div className="space-y-6">
+              <div className="flex gap-4 mb-8">
+                {photoBase64 && <img src={photoBase64} alt="Evidence" className="w-24 h-24 object-cover rounded-2xl shadow-md border border-white/50" />}
+                {location && (
+                  <div className="flex-1 bg-sky-50 rounded-2xl p-4 flex flex-col justify-center border border-sky-100">
+                    <span className="text-xs font-bold text-sky-800 uppercase tracking-widest mb-1">Pinned Location</span>
+                    <span className="font-medium text-sky-900">{location.lat.toFixed(5)}, {location.lng.toFixed(5)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-stone-700 mb-3 tracking-widest uppercase">Description</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                  className="w-full glass-input text-lg p-5 rounded-2xl bg-white/60 focus:bg-white"
+                  placeholder="E.g. Large pothole on the right lane near the intersection..."
+                />
+              </div>
+
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className={`w-full flex items-center justify-center py-5 px-6 text-xl font-black tracking-wide ${
+                  loading ? 'bg-stone-200 text-stone-400 cursor-not-allowed rounded-2xl' : 'glass-button'
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-6 h-6 animate-spin mr-3" />
+                    AI Analyzing...
+                  </>
+                ) : (
+                  <>
+                    Submit to Authorities <ArrowRight className="w-6 h-6 ml-2" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
