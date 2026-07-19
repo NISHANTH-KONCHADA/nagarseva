@@ -1,4 +1,4 @@
-import Groq from '@groq/sdk'
+import Groq from 'groq-sdk'
 import mongoose from 'mongoose'
 import Ward from '../models/Ward.js'
 import Authority from '../models/Authority.js'
@@ -64,7 +64,7 @@ Provide your assessment as valid JSON (no markdown, just raw JSON):
 
 Respond ONLY with the JSON object, nothing else.`
 
-    const response = await groq.messages.create({
+    const response = await groq.chat.completions.create({
       model: 'llama-3.2-90b-vision-preview',
       max_tokens: 500,
       messages: [
@@ -72,23 +72,21 @@ Respond ONLY with the JSON object, nothing else.`
           role: 'user',
           content: [
             {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: 'image/jpeg',
-                data: photoBase64,
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${photoBase64}`,
               },
             },
             {
               type: 'text',
               text: prompt,
             },
-          ],
+          ] as any,
         },
       ],
     })
 
-    const responseText = response.content[0].type === 'text' ? response.content[0].text : ''
+    const responseText = response.choices[0]?.message?.content || ''
 
     // Parse JSON from response
     const jsonMatch = responseText.match(/\{[\s\S]*\}/)

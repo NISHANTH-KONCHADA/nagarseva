@@ -1,81 +1,60 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { v4 as uuidv4 } from 'uuid'
+import { Navbar } from './components/Navbar'
+import { FloatingAssistant } from './components/FloatingAssistant'
 
-interface HealthCheckResponse {
-  status: string
+import ReportIssue from './pages/ReportIssue'
+import MyComplaints from './pages/MyComplaints'
+import SafetyMap from './pages/SafetyMap'
+import SafeRoute from './pages/SafeRoute'
+import Dashboard from './pages/Dashboard'
+
+function HomePlaceholder() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-4">
+      <div className="glass-panel p-12 max-w-3xl w-full flex flex-col items-center relative z-10">
+        <h1 className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-500 mb-6 drop-shadow-sm">Welcome to Nagarseva</h1>
+        <p className="text-xl text-gray-700 max-w-2xl font-medium leading-relaxed">
+          The unified civic platform for reporting issues, tracking resolutions, and navigating your city safely.
+        </p>
+      </div>
+    </div>
+  )
 }
 
 function App() {
-  const [health, setHealth] = useState<HealthCheckResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
+  // Ensure a persistent userId exists for the session
   useEffect(() => {
-    const fetchHealth = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch('/api/health')
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        const data: HealthCheckResponse = await response.json()
-        setHealth(data)
-        setError(null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error occurred')
-        setHealth(null)
-      } finally {
-        setLoading(false)
-      }
+    if (!localStorage.getItem('nagarseva_user_id')) {
+      localStorage.setItem('nagarseva_user_id', uuidv4())
     }
-
-    fetchHealth()
   }, [])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-          Full-Stack App
-        </h1>
+    <Router>
+      <div className="min-h-screen bg-[#fdfbf7] flex flex-col font-sans selection:bg-emerald-200 selection:text-emerald-900 relative overflow-hidden">
+        {/* Ambient background blur blobs */}
+        <div className="fixed top-0 left-1/4 w-[500px] h-[500px] bg-emerald-300/40 rounded-full mix-blend-multiply filter blur-3xl opacity-60 pointer-events-none animate-blob"></div>
+        <div className="fixed top-0 right-1/4 w-[500px] h-[500px] bg-teal-200/40 rounded-full mix-blend-multiply filter blur-3xl opacity-60 pointer-events-none animate-blob" style={{ animationDelay: '2s' }}></div>
+        <div className="fixed -bottom-32 left-1/2 w-[600px] h-[600px] bg-sky-200/40 rounded-full mix-blend-multiply filter blur-3xl opacity-60 pointer-events-none animate-blob" style={{ animationDelay: '4s' }}></div>
 
-        <div className="space-y-4">
-          <p className="text-gray-600 text-center">
-            Backend Health Status:
-          </p>
-
-          {loading && (
-            <div className="flex justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded p-4">
-              <p className="text-red-700 text-sm font-medium">
-                Error: {error}
-              </p>
-            </div>
-          )}
-
-          {health && (
-            <div className="bg-green-50 border border-green-200 rounded p-4">
-              <p className="text-green-700 font-semibold text-center">
-                ✓ Status: {health.status}
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <p className="text-xs text-gray-500 text-center">
-            React + Vite + TypeScript + Tailwind
-          </p>
-          <p className="text-xs text-gray-500 text-center mt-1">
-            Node + Express + MongoDB
-          </p>
-        </div>
+        <Navbar />
+        <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+          <Routes>
+            <Route path="/" element={<HomePlaceholder />} />
+            <Route path="/report" element={<ReportIssue />} />
+            <Route path="/my-complaints" element={<MyComplaints />} />
+            <Route path="/safety-map" element={<SafetyMap />} />
+            <Route path="/safe-route" element={<SafeRoute />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+        
+        <FloatingAssistant />
       </div>
-    </div>
+    </Router>
   )
 }
 

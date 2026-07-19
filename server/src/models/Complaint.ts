@@ -17,6 +17,7 @@ export interface IComplaint extends Document {
   ward: mongoose.Types.ObjectId
   severity: number
   status: 'submitted' | 'routed' | 'in_progress' | 'resolved' | 'escalated'
+  userId?: string
   assignedAuthority?: mongoose.Types.ObjectId
   escalationLevel: number
   aiConfidence?: number
@@ -66,7 +67,13 @@ const complaintSchema = new Schema<IComplaint>(
       enum: ['submitted', 'routed', 'in_progress', 'resolved', 'escalated'],
       default: 'submitted',
     },
+    userId: {
+      type: String,
+    },
     assignedAuthority: {
+      type: Schema.Types.ObjectId,
+      ref: 'Authority',
+    },
     escalationLevel: {
       type: Number,
       min: 0,
@@ -93,10 +100,6 @@ const complaintSchema = new Schema<IComplaint>(
         },
         notes: {
           type: String,
-        },
-      },
-    ],
-
         },
       },
     ],

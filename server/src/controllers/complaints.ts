@@ -1,7 +1,6 @@
 import { Request, Response } from 'express'
 import Complaint from '../models/Complaint.js'
 import { processComplaintWithAI } from '../services/aiAgent.js'
-import Complaint from '../models/Complaint.js'
 
 // List all complaints with pagination
 export const getComplaints = async (req: Request, res: Response) => {
@@ -10,14 +9,36 @@ export const getComplaints = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 10
     const skip = (page - 1) * limit
 
-    const complaints = await Complaint.find()
+    const filter: any = {}
+    if (req.query.userId) filter.userId = req.query.userId as string
+    if (req.query.type) filter.type = req.query.type as string
+
+    if (req.query.timeOfDay) {
+      const tod = req.query.timeOfDay as string
+      let hourRanges: number[] = []
+      if (tod === 'morning') hourRanges = [6, 12]
+      else if (tod === 'afternoon') hourRanges = [12, 18]
+      else if (tod === 'evening') hourRanges = [18, 24]
+      else if (tod === 'night') hourRanges = [0, 6]
+
+      if (hourRanges.length) {
+        filter.$expr = {
+          $and: [
+            { $gte: [{ $hour: '$createdAt' }, hourRanges[0]] },
+            { $lt: [{ $hour: '$createdAt' }, hourRanges[1]] }
+          ]
+        }
+      }
+    }
+
+    const complaints = await Complaint.find(filter)
       .populate('ward')
       .populate('assignedAuthority')
       .limit(limit)
       .skip(skip)
       .sort({ createdAt: -1 })
 
-    const total = await Complaint.countDocuments()
+    const total = await Complaint.countDocuments(filter)
 
     res.json({
       data: complaints,
@@ -42,6 +63,14 @@ export const getComplaintById = async (req: Request, res: Response) => {
 
     if (!complaint) {
       res.status(404).json({ error: 'Complaint not found' })
+      return
+    }
+
+    res.json(complaint)
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch complaint' })
+  }
+}
 // Create new complaint (with AI classification and auto-routing)
 export const createComplaint = async (req: Request, res: Response) => {
   try {
@@ -50,6 +79,7 @@ export const createComplaint = async (req: Request, res: Response) => {
       photoUrl,
       location,
       status,
+      userId,
     } = req.body
 
     // Validate required fields
@@ -111,6 +141,7 @@ export const createComplaint = async (req: Request, res: Response) => {
       ward: aiResult.ward,
       severity: aiResult.severity,
       status: status || 'routed',
+      userId,
       assignedAuthority: aiResult.assignedAuthority,
       escalationLevel: 0,
       aiConfidence: aiResult.confidence,
@@ -141,19 +172,7 @@ export const createComplaint = async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message || 'Failed to create complaint' })
   }
 }
-          timestamp: new Date(),
-        },
-      ],
-    })
 
-    const saved = await complaint.save()
-    const populated = await saved.populate(['ward', 'assignedAuthority'])
-
-    res.status(201).json(populated)
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to create complaint' })
-  }
-}
 
 // Update complaint
 export const updateComplaint = async (req: Request, res: Response) => {
